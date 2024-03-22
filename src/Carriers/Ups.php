@@ -3,10 +3,12 @@
 namespace Webkul\UpsShipping\Carriers;
 
 use Webkul\Checkout\Models\CartShippingRate;
+use Webkul\Checkout\Facades\Cart;
 use Webkul\Shipping\Carriers\AbstractShipping;
+use Webkul\UpsShipping\Helpers\ShippingMethodHelper;
 
 /**
- * Ups Shipping Shipping.
+ * Ups Shipping.
  *
  */
 class Ups extends AbstractShipping
@@ -25,70 +27,73 @@ class Ups extends AbstractShipping
      */
     public function calculate()
     {
-        if (! core()->getConfigData('sales.carriers.ups.active'))
+        $shippingMethods = [];
+
+        $rates = [];
+      
+        $data = app(ShippingMethodHelper::class)->servicesWithRates(Cart::getCart()->shipping_address);
+
+        if (! $this->isAvailable()) {
             return false;
+        }
 
-        $shippingMethods    = [];
-        $rates              = [];
-        $shippingHelper     = app('Webkul\UpsShipping\Helpers\ShippingMethodHelper');
-        $getCommonServices  = app('Webkul\UpsShipping\Repositories\UpsRepository');
-        $data               = $shippingHelper->getAllCartProducts();
-        $serviceData        = $getCommonServices->getCommonMethods($data['response']);
+        if (isset($data) && $data == true) {
+            foreach ($data as $key => $fedexServices) {
+                $rate = 0;
 
-        $shippingRate = session()->get('shipping_rates');
+                $totalShippingCost = 0;
 
-        if ( isset($data['response']) && $data['response'] && !$data['errorResponse'] && !empty($serviceData) ) {
-            foreach ($serviceData as $key => $upsServices) {
-                $rate               = 0;
-                $totalShippingCost  = 0;
-                $upsMethod          = $key;
-                $classId            = '';
+                $upsMethod = $methodCode = $key;
 
-                foreach ($upsServices as $upsRate) {
-                    $classId             = $upsRate['classId'];
-                    $rate               += $upsRate['rate'] * $upsRate['itemQuantity'];
-                    $itemShippingCost    = $upsRate['rate'] * $upsRate['itemQuantity'];
+                foreach ($fedexServices as $upsRate) {
+                    $rate += $upsRate['rate'] * $upsRate['itemQuantity'];
+                    
+                    $sellerId = $upsRate['marketplace_seller_id'];
 
-                    if ( isset($rates[$key]) ) {
-                        $rates[$key] = [
-                            'amount'        => core()->convertPrice($rates[$key]['amount'] + $itemShippingCost),
-                            'base_amount'   => $rates[$key]['base_amount'] + $itemShippingCost
-                        ];
-                    } else {
-                        $rates[$key] = [
-                            'amount'        => core()->convertPrice($itemShippingCost),
-                            'base_amount'   => $itemShippingCost
+                    $itemShippingCost = $upsRate['rate'] * $upsRate['itemQuantity'];
+
+                    $rates[$key][$sellerId] = [
+                        'amount'      => core()->convertPrice($itemShippingCost),
+                        'base_amount' => $itemShippingCost,
+                    ];
+
+                    if (isset($rates[$key][$sellerId])) {
+                        $rates[$key][$sellerId] = [
+                            'amount'      => core()->convertPrice($rates[$key][$sellerId]['amount'] + $itemShippingCost),
+                            'base_amount' => $rates[$key][$sellerId]['base_amount'] + $itemShippingCost,
                         ];
                     }
 
-                    $totalShippingCost  += $itemShippingCost;
+                    $totalShippingCost += $itemShippingCost;
                 }
-
-                $object                     = new CartShippingRate;
-                $object->carrier            = 'ups';
-                $object->carrier_title      = $this->getConfigData('title') . ' (' . $this->getConfigData('description') . ')';
-                $object->method             = 'ups_' . $classId;
-                $object->method_title       = $upsMethod;
-                $object->method_description = $this->getConfigData('title') . ' (' . $this->getConfigData('description') . ')';
-                $object->is_calculate_tax   = $this->getConfigData('is_calculate_tax');
+               
+                $object = new CartShippingRate;
+                $object->carrier            = 'mpups';
+                $object->carrier_title      = $this->getConfigData('title');
+                $object->method             = 'mpups_'.''.$methodCode;
+                $object->method_title       = $this->getConfigData('title');
+                $object->method_description = $upsMethod;
                 $object->price              = core()->convertPrice($totalShippingCost);
                 $object->base_price         = $totalShippingCost;
 
-                $shippingRate = session()->get('shipping_rates');
+                $marketplaceShippingRates = session()->get('marketplace_shipping_rates');
 
-                if (! is_array($shippingRate)) {
-                    $shippingRates['ups'] = $rates;
-                    session()->put('shipping_rates', $shippingRates);
+                if (! is_array(session()->get('marketplace_shipping_rates'))) {
+                    $marketplaceShippingRates['mpupsshipping'] = ['mpupsshipping' => $rates];
+
+                    session()->put('marketplace_shipping_rates', $marketplaceShippingRates);
                 } else {
-                    session()->put('shipping_rates.ups', $rates);
+                    $marketplaceFedexShipping = ['mpupshipping' => $rates];
                 }
 
                 array_push($shippingMethods, $object);
             }
 
+            if (isset($marketplaceFedexShipping)) {
+                session()->put('marketplace_shipping_rates.mpupshipping', $marketplaceFedexShipping);
+            }
+
             return $shippingMethods;
-        } else {
-            return null;
         }
     }
 }

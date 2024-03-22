@@ -15,6 +15,10 @@ class UpsShippingServiceProvider extends ServiceProvider
     public function boot(Router $router)
     {
         $this->loadTranslationsFrom(__DIR__ . '/../Resources/lang', 'ups');
+
+        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'ups');
+
+        $this->loadPublishableAssets();
     }
 
     /**
@@ -41,5 +45,15 @@ class UpsShippingServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             dirname(__DIR__) . '/Config/system.php', 'core'
         );
+    }
+
+    /**
+     * This method will load all publishables.
+     */
+    public function loadPublishableAssets(): void
+    {
+        $this->publishes([
+            __DIR__.'/../Resources/views/shop/checkout/onepage/shipping.blade.php' => resource_path('themes/default/views/checkout/onepage/shipping.blade.php'),
+        ]);
     }
 }
