@@ -3,11 +3,11 @@
 namespace Webkul\UpsShipping\Helpers;
 
 use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
 use Webkul\Checkout\Facades\Cart;
-use Webkul\Checkout\Repositories\CartAddressRepository as CartAddress;
+use Monolog\Handler\StreamHandler;
 use Webkul\Core\Repositories\ChannelRepository as Channel;
 use Webkul\UpsShipping\Repositories\UpsRepository as UpsRepository;
+use Webkul\Checkout\Repositories\CartAddressRepository as CartAddress;
 
 class ShippingMethodHelper
 {
@@ -45,7 +45,7 @@ class ShippingMethodHelper
      * @param array
      */
     public function servicesWithRates($address)
-    {   
+    {
         $allServices = [];
 
         $adminData = $this->channel->findByField('code', core()->getCurrentChannelCode())->first();
@@ -180,42 +180,22 @@ class ShippingMethodHelper
                 $upsServices = json_decode(json_encode(simplexml_load_string($response)));
 
                 $allServices = $this->requestResponse($upsServices, $cartProduct);
-
             } catch(\Exception $e) {
                 return $allServices = [];
             }
         }
-
+        
         return $allServices;
     }
 
     /**
-     * Map service code
+     * Get service name via service code
      *
-     * @param $serviceCode
+     * @param string $serviceCode
      */
     protected function getServiceName($serviceCode): string
     {
-        $mapServices = [
-            '01' => 'Next Day Air',
-            '02' => '2nd Day Air',
-            '03' => 'Ups Ground',
-            '07' => 'Ups Worldwide Express',
-            '08' => 'Ups Worldwide Expedited',
-            '11' => 'Standard',
-            '12' => '3 Day Select',
-            '13' => 'Next Day Air Saver',
-            '14' => 'Next Day Air Early A.M.',
-            '54' => 'Ups Worldwide Express Plus',
-            '59' => '2nd Day Air A.M.',
-            '65' => 'UPS World Wide Saver',
-            '82' => 'Today Standard',
-            '83' => 'Today Dedicated Courier',
-            '84' => 'Today Intercity',
-            '85' => 'Today Express',
-            '86' => 'Today Express Saver',
-            '03' => 'Ups Ground',
-        ];
+        $mapServices = $this->upsRepository->getServices();
 
         if (in_array($serviceCode, array_keys($mapServices))) {
             return $mapServices[$serviceCode];
@@ -229,7 +209,7 @@ class ShippingMethodHelper
      *
      * @param string $weight
      **/
-    public function getWeight($weight) 
+    public function getWeight($weight)
     {
         $convertedWeight = '';
 
@@ -328,5 +308,88 @@ class ShippingMethodHelper
         }
 
         return $cartProductServices ?? [];
+    }
+
+    /**
+     * Generate access token.
+     * Todo:: Verify working
+     * 
+     * @return array
+     */
+    public function generateAccessToken()
+    {
+        $curl = curl_init();
+
+        curl_setopt_array($curl, [
+            CURLOPT_HTTPHEADER => [
+                "Content-Type: application/x-www-form-urlencoded",
+                "Authorization: Basic " . base64_encode("demowebkul7:Webkul12#"),
+            ],
+
+            CURLOPT_POSTFIELDS     => "grant_type=authorization_code&code=string&redirect_uri=string",
+            CURLOPT_URL            => "https://wwwcie.ups.com/security/v1/oauth/token",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => "POST",
+        ]);
+
+        $response = curl_exec($curl);
+
+        $error = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($error) {
+            return [
+                'status'  => 'ERROR',
+                'message' => $error,
+            ];
+        }
+
+        return [
+            'status'      => 'SUCCESS',
+            'accessToken' => json_decode($response)['access_token'],
+        ];
+    }
+
+    /**
+     * Call ups api
+     * Todo:: Verify working
+     * 
+     * @return array|Exception
+     */
+    public function callApi(string $url, array $data = [], string $method = "GET", array $headers = [])
+    {
+        $curl = curl_init();
+
+        $generateToken = $this->generateAccessToken();
+        
+        if (empty($generateToken)
+            || $generateToken['status'] == "ERROR"
+        ) {
+            return "Error";
+        }
+
+        curl_setopt_array($curl, [
+            CURLOPT_HTTPHEADER => array_merge([
+                "Authorization: Bearer ".$generateToken['accessToken'],
+                "Content-Type: application/json",
+            ], $headers),
+
+            CURLOPT_POSTFIELDS     => json_encode($data),
+            CURLOPT_URL            => "https://wwwcie.ups.com/api/".$url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => $method,
+        ]);
+
+        $response = curl_exec($curl);
+
+        $info = curl_getinfo($curl); 
+
+        curl_close($curl);
+
+        return match($info['http_code']) {
+            201 => json_decode($response),
+            default  => throw new \Exception('Error'),
+        };
     }
 }

@@ -19,6 +19,8 @@ class UpsShippingServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'ups');
 
         $this->loadPublishableAssets();
+
+        $this->app->register(EventServiceProvider::class);
     }
 
     /**

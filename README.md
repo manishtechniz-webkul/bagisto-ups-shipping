@@ -47,7 +47,7 @@ php artisan config:clear
 ~~~
 
 ~~~
-php artisan vendor:publish
+php artisan vendor:publish --provider="Webkul\UpsShipping\Providers\UpsShippingServiceProvider"
 ~~~
 
 > now execute the project on your specified domain.
