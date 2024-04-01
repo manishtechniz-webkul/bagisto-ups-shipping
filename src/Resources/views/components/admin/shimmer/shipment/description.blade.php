@@ -1,0 +1,1 @@
+<p class="shimmer mt-3 mb-0.5 pt-4 px-2.5 py-1 h-4"></p>

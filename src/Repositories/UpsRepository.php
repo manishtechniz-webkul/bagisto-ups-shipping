@@ -2,8 +2,6 @@
 
 namespace Webkul\UpsShipping\Repositories;
 
-use Webkul\Sales\Repositories\OrderRepository;
-
 class UpsRepository
 {
     /**
@@ -63,5 +61,17 @@ class UpsRepository
             '86' => 'Today Express Saver',
             '03' => 'Ups Ground',
         ];
+    }
+
+    /**
+     * Get url according ups shipping mode
+     */
+    public function getShippingModeUrl(string $permalink, string $subDirectory = "api"): string
+    {
+        if (core()->getConfigData('sales.carriers.ups.mode') == 'DEVELOPMENT') {
+            return "https://wwwcie.ups.com/".$subDirectory.'/'.$permalink;
+        }
+
+        return "https://onlinetools.ups.com/".$subDirectory.'/'.$permalink;
     }
 }

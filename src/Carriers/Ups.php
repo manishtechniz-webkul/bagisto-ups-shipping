@@ -14,11 +14,18 @@ use Webkul\UpsShipping\Helpers\ShippingMethodHelper;
 class Ups extends AbstractShipping
 {
     /**
-     * Payment method code
+     * Shipping method code
      *
      * @var string
      */
     protected $code  = 'ups';
+
+    /**
+     * Shipping method code.
+     *
+     * @var string
+     */
+    protected $method = 'mpups_';
 
     /**
      * Returns rate for flatrate
@@ -43,7 +50,7 @@ class Ups extends AbstractShipping
 
                 $totalShippingCost = 0;
 
-                $upsMethod = $methodCode = $key;
+                $upsMethod = $methodPostCode = $key;
 
                 foreach ($fedexServices as $upsRate) {
                     $rate += $upsRate['rate'] * $upsRate['itemQuantity'];
@@ -70,7 +77,7 @@ class Ups extends AbstractShipping
                 $object = new CartShippingRate;
                 $object->carrier            = 'mpups';
                 $object->carrier_title      = $this->getConfigData('title');
-                $object->method             = 'mpups_'.''.$methodCode;
+                $object->method             = $this->method.$methodPostCode;
                 $object->method_title       = $this->getConfigData('title');
                 $object->method_description = $upsMethod;
                 $object->price              = core()->convertPrice($totalShippingCost);

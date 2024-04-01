@@ -2,8 +2,10 @@
 
 namespace Webkul\UpsShipping\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
 
 class UpsShippingServiceProvider extends ServiceProvider
 {
@@ -21,6 +23,10 @@ class UpsShippingServiceProvider extends ServiceProvider
         $this->loadPublishableAssets();
 
         $this->app->register(EventServiceProvider::class);
+
+        Route::middleware('web')->group(__DIR__.'/../Routes/web.php');
+
+        Blade::anonymousComponentPath(__DIR__.'/../Resources/views/components', 'ups');
     }
 
     /**
@@ -56,6 +62,10 @@ class UpsShippingServiceProvider extends ServiceProvider
     {
         $this->publishes([
             __DIR__.'/../Resources/views/shop/checkout/onepage/shipping.blade.php' => resource_path('themes/default/views/checkout/onepage/shipping.blade.php'),
+        ]);
+
+        $this->publishes([
+            __DIR__.'/../Resources/views/admin/sales/shipment/view.blade.php' => resource_path('admin-themes/default/views/sales/shipments/view.blade.php'),
         ]);
     }
 }

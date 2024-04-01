@@ -4,26 +4,32 @@ namespace Webkul\UpsShipping\Listeners;
 
 use Webkul\Sales\Repositories\OrderRepository;
 use Webkul\Sales\Repositories\OrderItemRepository;
+use Webkul\Sales\Repositories\OrderAddressRepository;
 use Webkul\UpsShipping\Repositories\UpsRepository;
+use Webkul\UpsShipping\Helpers\ShippingMethodHelper;
+use Webkul\UpsShipping\Carriers\Ups;
 
 class Shipment
 {
     /**
      * Create new repository instances.
      *
-     * @param  \Webkul\Sales\Repositories\ShipmentItemRepository  $orderItemRepository
      * @return void
      */
     public function __construct(
         protected OrderRepository $orderRepository,
         protected OrderItemRepository $orderItemRepository,
-        protected UpsRepository $upsRepository
+        protected OrderAddressRepository $orderAddressRepository,
+        protected ShippingMethodHelper $shippingMethodHelper,
+        protected UpsRepository $upsRepository,
+        protected Ups $ups
     ) {
     }
 
     /**
      * Before shippment is created.
-     *
+     * Todo:: Verify working
+     * 
      * @return void
      */
     public function beforeCreated($data)
@@ -31,6 +37,10 @@ class Shipment
         $totalWeight = 0;
 
         $order = app(OrderRepository::class)->find(request('order_id'));
+
+        if (! is_integer(stripos($order->shipping_method, $this->ups->getMethod()))) {
+            return;
+        }
 
         $shippingAddress = $this->upsRepository->getShippingAddress($order->addresses);
 
@@ -44,7 +54,7 @@ class Shipment
        
         $shipmentRequest = [
             "Request" => [
-                "SubVersion" => "2403",
+                "SubVersion"    => "2403",
                 "RequestOption" => "nonvalidate",
             ],
 
@@ -161,11 +171,12 @@ class Shipment
         ];
 
         try {
-            /**
-             * Todo:: Create request
-             */
+            $this->shippingMethodHelper->callApi('shipments/v1/ship', $shipmentRequest, $method = 'POST', $headers = [
+                "transId: ".$data['track_number'],
+                "transactionSrc: website",
+            ]);
         } catch (\Exception $e) {
-            report($e);
+            throw $e;
         }
     }
 }

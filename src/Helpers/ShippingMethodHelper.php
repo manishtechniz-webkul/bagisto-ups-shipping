@@ -3,40 +3,22 @@
 namespace Webkul\UpsShipping\Helpers;
 
 use Monolog\Logger;
-use Webkul\Checkout\Facades\Cart;
 use Monolog\Handler\StreamHandler;
+use Webkul\Checkout\Facades\Cart;
 use Webkul\Core\Repositories\ChannelRepository as Channel;
-use Webkul\UpsShipping\Repositories\UpsRepository as UpsRepository;
 use Webkul\Checkout\Repositories\CartAddressRepository as CartAddress;
+use Webkul\UpsShipping\Repositories\UpsRepository as UpsRepository;
 
 class ShippingMethodHelper
 {
     /**
-     * Contains route related configuration
-     *
-     * @var array
-     */
-    protected $_config;
-
-    /**
      * Create new controller instances.
-     *
-     * @param \Webkul\Checkout\Repositories\CartAddressRepository  $cartAddress;
-     * @param \Webkul\Core\Repositories\ChannelRepository $channel
-     * @param \Webkul\Shipping\Repositories\UpsRepository $upsRepository;
      */
     public function __construct(
        protected CartAddress $cartAddress,
        protected Channel $channel,
        protected UpsRepository $upsRepository
-   ) {
-        $this->_config = request('_config');
-
-        $this->cartAddress = $cartAddress;
-
-        $this->upsRepository = $upsRepository;
-
-        $this->channel = $channel;
+    ) {
     }
 
     /**
@@ -314,7 +296,7 @@ class ShippingMethodHelper
      * Generate access token.
      * Todo:: Verify working
      * 
-     * @return array
+     * @return array|Exception
      */
     public function generateAccessToken()
     {
@@ -327,28 +309,22 @@ class ShippingMethodHelper
             ],
 
             CURLOPT_POSTFIELDS     => "grant_type=authorization_code&code=string&redirect_uri=string",
-            CURLOPT_URL            => "https://wwwcie.ups.com/security/v1/oauth/token",
+            CURLOPT_URL            => $this->upsRepository->getShippingModeUrl('v1/oauth/token', $subDirectory = 'security'),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST  => "POST",
         ]);
 
-        $response = curl_exec($curl);
+        $result = json_decode(curl_exec($curl));
 
-        $error = curl_error($curl);
+        $info = curl_getinfo($curl);
 
         curl_close($curl);
 
-        if ($error) {
-            return [
-                'status'  => 'ERROR',
-                'message' => $error,
-            ];
-        }
-
-        return [
-            'status'      => 'SUCCESS',
-            'accessToken' => json_decode($response)['access_token'],
-        ];
+        return match($info['http_code']) {
+            201             => $result,
+            400,401,403,429 => throw new \Exception($result?->response?->errors[0]?->message ?? trans('ups::app.admin.api-error.generate-token-failed')),
+            default         => throw new \Exception(trans('ups::app.admin.api-error.generate-token-failed')),
+        };
     }
 
     /**
@@ -357,39 +333,32 @@ class ShippingMethodHelper
      * 
      * @return array|Exception
      */
-    public function callApi(string $url, array $data = [], string $method = "GET", array $headers = [])
+    public function callApi(string $permalink, array $data = [], string $method = "GET", array $headers = [])
     {
         $curl = curl_init();
 
-        $generateToken = $this->generateAccessToken();
-        
-        if (empty($generateToken)
-            || $generateToken['status'] == "ERROR"
-        ) {
-            return "Error";
-        }
-
         curl_setopt_array($curl, [
             CURLOPT_HTTPHEADER => array_merge([
-                "Authorization: Bearer ".$generateToken['accessToken'],
+                "Authorization: Bearer ".$this->generateAccessToken()['accessToken'],
                 "Content-Type: application/json",
             ], $headers),
 
             CURLOPT_POSTFIELDS     => json_encode($data),
-            CURLOPT_URL            => "https://wwwcie.ups.com/api/".$url,
+            CURLOPT_URL            => $this->upsRepository->getShippingModeUrl($permalink),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST  => $method,
         ]);
 
-        $response = curl_exec($curl);
+        $result = json_decode(curl_exec($curl));
 
-        $info = curl_getinfo($curl); 
+        $info = curl_getinfo($curl);
 
         curl_close($curl);
 
         return match($info['http_code']) {
-            201 => json_decode($response),
-            default  => throw new \Exception('Error'),
+            201             => $result,
+            400,401,403,429 => throw new \Exception($result?->response?->errors[0]?->message ?? trans('ups::app.admin.api-error.encountered-error')),
+            default         => throw new \Exception(trans('ups::app.admin.api-error.encountered-error')),
         };
     }
 }

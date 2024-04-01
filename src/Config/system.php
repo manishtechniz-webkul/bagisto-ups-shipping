@@ -31,10 +31,10 @@ return [
                 'validation' => 'required',
                 'options'    => [
                     [
-                        'title' => 'Development',
+                        'title' => 'ups::app.admin.system.development',
                         'value' => 'DEVELOPMENT',
                     ], [
-                        'title' => 'Live',
+                        'title' => 'ups::app.admin.system.live',
                         'value' => "LIVE",
                     ],
                 ],
@@ -74,19 +74,19 @@ return [
                 'locale_based'  => true,
                 'options'       => [
                     [
-                        'title' => 'Package',
+                        'title' => 'ups::app.admin.system.package',
                         'value' => '02',
                     ], [
-                        'title' => 'UPS Letter',
+                        'title' => 'ups::app.admin.system.ups-letter',
                         'value' => '01'
                     ], [
-                        'title' => 'UPS Tube',
+                        'title' => 'ups::app.admin.system.ups-tube',
                         'value' => '03'
                     ], [
-                        'title' => 'UPS Pak',
+                        'title' => 'ups::app.admin.system.ups-pak',
                         'value' => '04'
                     ], [
-                        'title' => 'UPS Express Box',
+                        'title' => 'ups::app.admin.system.ups-express-box',
                         'value' => '21',
                     ],
                 ],
@@ -99,10 +99,10 @@ return [
                 'locale_based'  => true,
                 'options'       => [
                     [
-                        'title' => 'LBS',
+                        'title' => 'ups::app.admin.system.lbs',
                         'value' => 'LBS'
                     ], [
-                        'title' => 'KGS',
+                        'title' => 'ups::app.admin.system.kgs',
                         'value' => 'KGS',
                     ],
                 ],
@@ -114,37 +114,37 @@ return [
                 'locale_based'  => true,
                 'options'       => [
                     [
-                        'title' => 'Next Day Air Early AM',
+                        'title' => 'ups::app.admin.system.next-day-air-early-am',
                         'value' => '14',
                     ], [
-                        'title' => 'Next Day Air',
+                        'title' => 'ups::app.admin.system.next-day-air',
                         'value' => '01',
                     ], [
-                        'title' => 'Next Day Air Saver',
+                        'title' => 'ups::app.admin.system.next-day-air-saver',
                         'value' => '13',
                     ], [
-                        'title' => '2nd Day Air AM',
+                        'title' => 'ups::app.admin.system.2nd-day-air-am',
                         'value' => '59',
                     ], [
-                        'title' => '2nd Day Air',
+                        'title' => 'ups::app.admin.system.2nd-day-air',
                         'value' => '02',
                     ], [
-                        'title' => '3 Day Select',
+                        'title' => 'ups::app.admin.system.3-day-select',
                         'value' => '12',
                     ], [
-                        'title' => 'Ups Ground',
+                        'title' => 'ups::app.admin.system.ups-ground',
                         'value' => '03',
                     ], [
-                        'title' => 'UPS Worldwide Express',
+                        'title' => 'ups::app.admin.system.ups-worldwide-express',
                         'value' => '07',
                     ], [
-                        'title' => 'UPS Worldwide Express Plus',
+                        'title' => 'ups::app.admin.system.ups-worldwide-express-plus',
                         'value' => '54',
                     ], [
-                        'title' => 'UPS Worldwide Expedited',
+                        'title' => 'ups::app.admin.system.ups-worldwide-expedited',
                         'value' => '08',
                     ], [
-                        'title' => 'UPS World Wide Saver',
+                        'title' => 'ups::app.admin.system.ups-worldwide-saver',
                         'value' => '65',
                     ],
                 ],
